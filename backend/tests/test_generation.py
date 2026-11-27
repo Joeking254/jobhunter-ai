@@ -64,7 +64,7 @@ def test_gemini_generation_provider(monkeypatch):
     monkeypatch.setattr("app.services.ai.providers.httpx.post", lambda *a, **kw: FakeResponse())
     monkeypatch.setattr(settings, "ai_provider", "gemini")
     monkeypatch.setattr(settings, "ai_api_key", "test-gemini-key")
-    monkeypatch.setattr(settings, "ai_model", "gemini-2.5-flash")
+    monkeypatch.setattr(settings, "ai_model", "gemini-3.8-flash")
 
     provider = get_generation_provider()
     assert isinstance(provider, GeminiGenerationProvider)

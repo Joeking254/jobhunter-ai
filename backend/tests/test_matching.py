@@ -136,10 +136,10 @@ def test_gemini_provider_parses_structured_analysis(monkeypatch):
 
     provider = get_provider()
     assert isinstance(provider, GeminiProvider)
-    assert resolved_ai_model() == "gemini-2.5-flash"
+    assert resolved_ai_model() == "gemini-3.8-flash"
     result = provider.analyze_job({"title": "Python Dev"})
     assert result["required_skills"] == ["python", "sql"]
-    assert captured["url"].endswith("/models/gemini-2.5-flash:generateContent")
+    assert captured["url"].endswith("/models/gemini-3.8-flash:generateContent")
     assert captured["headers"]["x-goog-api-key"] == "test-gemini-key"
 
 

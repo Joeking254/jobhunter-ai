@@ -55,7 +55,7 @@ class OpenAICompatibleProvider(AIProvider):
         return json.loads(content) if isinstance(content, str) else content
 
 
-DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
 
 
 def resolved_ai_model(provider: str | None = None, model: str | None = None) -> str:
@@ -111,7 +111,7 @@ def post_gemini_json(prompt: str, api_key: str, model: str | None = None, api_ur
             json=payload,
             timeout=settings.discovery_request_timeout_seconds,
         )
-        if response.status_code not in (400, 401, 403, 404) or idx == len(endpoints) - 1:
+        if response.status_code not in (401, 403) or idx == len(endpoints) - 1:
             break
     assert response is not None
     response.raise_for_status()
