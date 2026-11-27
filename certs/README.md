@@ -1,0 +1,1 @@
+Place the deployment's `fullchain.pem` and `privkey.pem` here for the production Nginx configuration. Certificate and private-key files are excluded from version control. Do not use the example environment values or self-signed certificates for a public deployment.

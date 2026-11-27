@@ -1,0 +1,11 @@
+.git
+.env*
+!.env.development.example
+!.env.production.example
+node_modules
+dist
+.venv
+__pycache__
+*.py[cod]
+*.log
+coverage

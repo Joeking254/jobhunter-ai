@@ -1,0 +1,1 @@
+"""JOBHUNTER AI backend application."""

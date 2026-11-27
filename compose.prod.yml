@@ -1,0 +1,46 @@
+services:
+  backend:
+    environment:
+      APP_ENV: production
+      COOKIE_SECURE: "true"
+      DOCUMENT_STORAGE_DIR: /data/documents
+      BACKUP_DIR: /data/backups
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+    volumes:
+      - documents_data:/data/documents
+      - backups_data:/data/backups
+    read_only: true
+
+  worker:
+    environment:
+      APP_ENV: production
+      COOKIE_SECURE: "true"
+      DOCUMENT_STORAGE_DIR: /data/documents
+      BACKUP_DIR: /data/backups
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+    volumes:
+      - documents_data:/data/documents
+      - backups_data:/data/backups
+    read_only: true
+
+  scheduler:
+    environment:
+      APP_ENV: production
+      COOKIE_SECURE: "true"
+      DOCUMENT_STORAGE_DIR: /data/documents
+      BACKUP_DIR: /data/backups
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+    read_only: true
+
+  nginx:
+    ports:
+      - "80:8080"
+      - "443:8443"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+      - ./certbot/www:/var/www/certbot:ro
+
+volumes:
+  documents_data:
+  backups_data:
