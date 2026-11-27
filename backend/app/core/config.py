@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     ai_api_url: str | None = None
     ai_api_key: str | None = None
     ai_model: str = "configured-model"
+    ai_request_timeout_seconds: int = 60
     match_strong_threshold: int = 85
     match_approval_threshold: int = 65
     match_weight_skills: int = 35

@@ -48,7 +48,7 @@ class OpenAICompatibleProvider(AIProvider):
 
     def analyze_job(self, job: dict[str, Any]) -> dict[str, Any]:
         prompt = "Analyze this job and return only JSON with job_category, required_skills, education_requirements, eligibility_restrictions, experience_requirements, risk_warnings, risk_level, and salary. Do not invent facts.\n" + json.dumps(job)
-        response = httpx.post(self.url, headers={"Authorization": f"Bearer {self.api_key}"}, json={"model": self.model, "messages": [{"role": "user", "content": prompt}], "response_format": {"type": "json_object"}}, timeout=settings.discovery_request_timeout_seconds)
+        response = httpx.post(self.url, headers={"Authorization": f"Bearer {self.api_key}"}, json={"model": self.model, "messages": [{"role": "user", "content": prompt}], "response_format": {"type": "json_object"}}, timeout=settings.ai_request_timeout_seconds)
         response.raise_for_status()
         data = response.json()
         content = data.get("choices", [{}])[0].get("message", {}).get("content", "{}")
@@ -109,7 +109,7 @@ def post_gemini_json(prompt: str, api_key: str, model: str | None = None, api_ur
             endpoint,
             headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
             json=payload,
-            timeout=settings.discovery_request_timeout_seconds,
+            timeout=settings.ai_request_timeout_seconds,
         )
         if response.status_code not in (401, 403) or idx == len(endpoints) - 1:
             break

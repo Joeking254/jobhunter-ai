@@ -45,7 +45,7 @@ class VerifiedTemplateProvider(GenerationProvider):
 class ExternalGenerationProvider(GenerationProvider):
     def generate(self, context: dict[str, Any]) -> dict[str, str | dict[str, str]]:
         prompt = "Generate a tailored CV, cover letter, and application answers. Use only verified_profile facts; do not invent claims, dates, employers, qualifications, or achievements. Return JSON with cv, cover_letter, answers.\n" + json.dumps(context)
-        response = httpx.post(settings.ai_api_url, headers={"Authorization": f"Bearer {settings.ai_api_key}"}, json={"model": settings.ai_model, "messages": [{"role": "user", "content": prompt}], "response_format": {"type": "json_object"}}, timeout=settings.discovery_request_timeout_seconds)
+        response = httpx.post(settings.ai_api_url, headers={"Authorization": f"Bearer {settings.ai_api_key}"}, json={"model": settings.ai_model, "messages": [{"role": "user", "content": prompt}], "response_format": {"type": "json_object"}}, timeout=settings.ai_request_timeout_seconds)
         response.raise_for_status()
         content = response.json().get("choices", [{}])[0].get("message", {}).get("content", "{}")
         return json.loads(content) if isinstance(content, str) else content
