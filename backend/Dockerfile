@@ -8,7 +8,7 @@ RUN addgroup --system app && adduser --system --ingroup app app
 
 COPY requirements.txt ./
 RUN pip install --no-cache-dir --disable-pip-version-check -r requirements.txt \
-    && playwright install --with-deps chromium \
+    && playwright install --only-shell --with-deps chromium \
     && rm -rf /var/lib/apt/lists/* \
     && chmod -R a+rX /ms-playwright
 COPY --chown=app:app . .

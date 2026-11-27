@@ -12,6 +12,7 @@ services:
     restart: unless-stopped
 
   backend:
+    image: jobhunter-ai-backend:latest
     build: ./backend
     command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
     environment:
@@ -51,7 +52,7 @@ services:
     restart: unless-stopped
 
   worker:
-    build: ./backend
+    image: jobhunter-ai-backend:latest
     command: ["celery", "-A", "app.worker.celery_app:celery_app", "worker", "--loglevel=INFO", "--concurrency=4", "-Q", "celery,discovery,analysis,applications,notifications,maintenance"]
     stop_grace_period: 30s
     environment: &backend-env
@@ -82,7 +83,7 @@ services:
     restart: unless-stopped
 
   scheduler:
-    build: ./backend
+    image: jobhunter-ai-backend:latest
     command: ["celery", "-A", "app.worker.celery_app:celery_app", "beat", "--loglevel=INFO", "--schedule=/tmp/celerybeat-schedule"]
     environment: *backend-env
     depends_on:
