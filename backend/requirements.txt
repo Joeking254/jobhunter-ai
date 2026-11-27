@@ -12,6 +12,7 @@ python-multipart>=0.0.9,<1
 pydantic-settings>=2.6,<3
 playwright>=1.45,<2
 cryptography>=42,<47
+email-validator>=2.1,<3
 pymysql>=1.1,<2
 redis>=5,<7
 SQLAlchemy>=2.0,<3
