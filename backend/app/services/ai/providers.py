@@ -85,18 +85,35 @@ def _parse_json_object(raw: Any) -> dict[str, Any]:
 
 
 def post_gemini_json(prompt: str, api_key: str, model: str | None = None, api_url: str | None = None) -> dict[str, Any]:
-    """Call Gemini generateContent and parse the structured JSON response."""
+    """Call Gemini generateContent (AI Studio or Vertex Express) and parse JSON."""
     resolved_model = resolved_ai_model("gemini", model)
-    endpoint = api_url or f"https://generativelanguage.googleapis.com/v1beta/models/{resolved_model}:generateContent"
-    response = httpx.post(
-        endpoint,
-        headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
-        json={
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"responseMimeType": "application/json"},
-        },
-        timeout=settings.discovery_request_timeout_seconds,
+    endpoints = (
+        [api_url]
+        if api_url
+        else [
+            f"https://generativelanguage.googleapis.com/v1beta/models/{resolved_model}:generateContent",
+            *(
+                [f"https://aiplatform.googleapis.com/v1/publishers/google/models/{resolved_model}:generateContent"]
+                if api_key.startswith("AQ.")
+                else []
+            ),
+        ]
     )
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"responseMimeType": "application/json"},
+    }
+    response: httpx.Response | None = None
+    for idx, endpoint in enumerate(endpoints):
+        response = httpx.post(
+            endpoint,
+            headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
+            json=payload,
+            timeout=settings.discovery_request_timeout_seconds,
+        )
+        if response.status_code not in (400, 401, 403, 404) or idx == len(endpoints) - 1:
+            break
+    assert response is not None
     response.raise_for_status()
     data = response.json()
     parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])

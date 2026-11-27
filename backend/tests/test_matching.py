@@ -102,6 +102,8 @@ def test_gemini_provider_parses_structured_analysis(monkeypatch):
     captured: dict = {}
 
     class FakeResponse:
+        status_code = 200
+
         def raise_for_status(self) -> None:
             return None
 
@@ -139,3 +141,33 @@ def test_gemini_provider_parses_structured_analysis(monkeypatch):
     assert result["required_skills"] == ["python", "sql"]
     assert captured["url"].endswith("/models/gemini-2.5-flash:generateContent")
     assert captured["headers"]["x-goog-api-key"] == "test-gemini-key"
+
+
+def test_gemini_aq_key_falls_back_to_vertex_express(monkeypatch):
+    from app.services.ai.providers import post_gemini_json
+
+    called_urls: list[str] = []
+
+    class Resp:
+        def __init__(self, status_code: int, body: dict):
+            self.status_code = status_code
+            self._body = body
+
+        def raise_for_status(self) -> None:
+            if self.status_code >= 400:
+                raise RuntimeError(f"HTTP {self.status_code}")
+
+        def json(self) -> dict:
+            return self._body
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        called_urls.append(url)
+        if "generativelanguage" in url:
+            return Resp(401, {"error": "unauthorized"})
+        return Resp(200, {"candidates": [{"content": {"parts": [{"text": '{"job_category":"IT"}'}]}}]})
+
+    monkeypatch.setattr("app.services.ai.providers.httpx.post", fake_post)
+    out = post_gemini_json("analyze", "AQ.fake-express-key", "gemini-2.5-flash")
+    assert out == {"job_category": "IT"}
+    assert len(called_urls) == 2
+    assert "aiplatform.googleapis.com" in called_urls[1]

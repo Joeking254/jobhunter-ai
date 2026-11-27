@@ -41,6 +41,8 @@ def test_gemini_generation_provider(monkeypatch):
     from app.services.generation.providers import GeminiGenerationProvider, get_generation_provider
 
     class FakeResponse:
+        status_code = 200
+
         def raise_for_status(self) -> None:
             return None
 
