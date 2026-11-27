@@ -80,7 +80,7 @@ def generate_documents(db: Session, user: User, opportunity: Opportunity, questi
     provider = get_generation_provider()
     try:
         generated = provider.generate(context)
-    except (httpx.HTTPError, ValueError, RuntimeError) as exc:
+    except (httpx.HTTPError, ValueError, RuntimeError, KeyError, IndexError) as exc:
         logger.warning("Generation provider failed; falling back to verified template", extra={"error": type(exc).__name__})
         db.add(AIProcessingHistory(user_id=user.id, entity_type="document_generation", entity_id=opportunity.id, processor=type(provider).__name__, status="failed", output=json.dumps({"error": type(exc).__name__})))
         generated = VerifiedTemplateProvider().generate(context)

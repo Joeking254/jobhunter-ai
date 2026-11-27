@@ -222,9 +222,11 @@ def get_ai_config(user: User = Depends(get_current_user), db: Session = Depends(
         row = UserSettings(user_id=user.id)
         db.add(row)
         db.commit()
+    from app.services.ai.providers import resolved_ai_model
+
     return {
         "ai_provider": settings.ai_provider,
-        "ai_model": settings.ai_model,
+        "ai_model": resolved_ai_model(),
         "thresholds": {
             "strong_match": settings.match_strong_threshold,
             "approval_required": settings.match_approval_threshold,

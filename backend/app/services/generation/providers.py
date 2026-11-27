@@ -5,6 +5,7 @@ from typing import Any
 import httpx
 
 from app.core.config import settings
+from app.services.ai.providers import post_gemini_json
 
 
 class GenerationProvider(ABC):
@@ -50,7 +51,16 @@ class ExternalGenerationProvider(GenerationProvider):
         return json.loads(content) if isinstance(content, str) else content
 
 
+class GeminiGenerationProvider(GenerationProvider):
+    def generate(self, context: dict[str, Any]) -> dict[str, str | dict[str, str]]:
+        prompt = "Generate a tailored CV, cover letter, and application answers. Use ONLY facts present in context.profile and context.facts; do NOT invent companies, dates/years, degrees, skills, or achievements. Return JSON with string keys cv, cover_letter, and object key answers.\n" + json.dumps(context)
+        return post_gemini_json(prompt, settings.ai_api_key or "", settings.ai_model, settings.ai_api_url or None)
+
+
 def get_generation_provider() -> GenerationProvider:
-    if settings.ai_provider == "openai_compatible" and settings.ai_api_url and settings.ai_api_key:
+    provider = settings.ai_provider.lower()
+    if provider == "gemini" and settings.ai_api_key:
+        return GeminiGenerationProvider()
+    if provider == "openai_compatible" and settings.ai_api_url and settings.ai_api_key:
         return ExternalGenerationProvider()
     return VerifiedTemplateProvider()

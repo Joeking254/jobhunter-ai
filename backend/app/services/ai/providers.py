@@ -55,7 +55,72 @@ class OpenAICompatibleProvider(AIProvider):
         return json.loads(content) if isinstance(content, str) else content
 
 
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+
+
+def resolved_ai_model(provider: str | None = None, model: str | None = None) -> str:
+    """Resolve the effective model name for the configured AI provider."""
+    active_provider = (provider if provider is not None else settings.ai_provider).lower()
+    configured = (model if model is not None else settings.ai_model).strip()
+    if active_provider == "gemini" and (not configured or configured == "configured-model"):
+        return DEFAULT_GEMINI_MODEL
+    return configured or "configured-model"
+
+
+def _parse_json_object(raw: Any) -> dict[str, Any]:
+    if isinstance(raw, dict):
+        return raw
+    text = str(raw or "{}").strip()
+    if text.startswith("```"):
+        lines = text.splitlines()
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        text = "\n".join(lines).strip()
+    parsed = json.loads(text or "{}")
+    if not isinstance(parsed, dict):
+        raise ValueError("AI provider returned non-object JSON")
+    return parsed
+
+
+def post_gemini_json(prompt: str, api_key: str, model: str | None = None, api_url: str | None = None) -> dict[str, Any]:
+    """Call Gemini generateContent and parse the structured JSON response."""
+    resolved_model = resolved_ai_model("gemini", model)
+    endpoint = api_url or f"https://generativelanguage.googleapis.com/v1beta/models/{resolved_model}:generateContent"
+    response = httpx.post(
+        endpoint,
+        headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
+        json={
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"responseMimeType": "application/json"},
+        },
+        timeout=settings.discovery_request_timeout_seconds,
+    )
+    response.raise_for_status()
+    data = response.json()
+    parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+    content = "".join(str(part.get("text", "")) for part in parts if isinstance(part, dict))
+    return _parse_json_object(content)
+
+
+class GeminiProvider(AIProvider):
+    name = "gemini"
+
+    def __init__(self, api_key: str, model: str | None = None, url: str | None = None) -> None:
+        self.api_key = api_key
+        self.model = resolved_ai_model("gemini", model)
+        self.url = url or None
+
+    def analyze_job(self, job: dict[str, Any]) -> dict[str, Any]:
+        prompt = "Analyze this job and return only JSON with job_category, required_skills, education_requirements, eligibility_restrictions, experience_requirements, risk_warnings, risk_level, and salary. Do not invent facts.\n" + json.dumps(job)
+        return post_gemini_json(prompt, self.api_key, self.model, self.url)
+
+
 def get_provider() -> AIProvider:
-    if settings.ai_provider == "openai_compatible" and settings.ai_api_url and settings.ai_api_key:
+    provider = settings.ai_provider.lower()
+    if provider == "gemini" and settings.ai_api_key:
+        return GeminiProvider(settings.ai_api_key, settings.ai_model, settings.ai_api_url)
+    if provider == "openai_compatible" and settings.ai_api_url and settings.ai_api_key:
         return OpenAICompatibleProvider(settings.ai_api_url, settings.ai_api_key, settings.ai_model)
     return RuleBasedProvider()

@@ -93,3 +93,49 @@ def test_remote_preference_is_supported(tmp_path):
         job = opportunity(db, source, external_id="remote", dedupe_hash="remote", location="Worldwide", remote_only=True)
         result = match_opportunity(db, user, job)
         assert result["eligibility_assessment"]["eligible"] is True
+
+
+def test_gemini_provider_parses_structured_analysis(monkeypatch):
+    from app.core.config import settings
+    from app.services.ai.providers import GeminiProvider, get_provider, resolved_ai_model
+
+    captured: dict = {}
+
+    class FakeResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict:
+            return {
+                "candidates": [
+                    {
+                        "content": {
+                            "parts": [
+                                {
+                                    "text": '{"job_category":"Software development","required_skills":["python","sql"],"education_requirements":[],"eligibility_restrictions":[],"experience_requirements":"2+ years","risk_warnings":[],"risk_level":"low","salary":{}}'
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        captured["url"] = url
+        captured["headers"] = headers
+        captured["json"] = json
+        return FakeResponse()
+
+    monkeypatch.setattr("app.services.ai.providers.httpx.post", fake_post)
+    monkeypatch.setattr(settings, "ai_provider", "gemini")
+    monkeypatch.setattr(settings, "ai_api_key", "test-gemini-key")
+    monkeypatch.setattr(settings, "ai_model", "configured-model")
+    monkeypatch.setattr(settings, "ai_api_url", None)
+
+    provider = get_provider()
+    assert isinstance(provider, GeminiProvider)
+    assert resolved_ai_model() == "gemini-2.5-flash"
+    result = provider.analyze_job({"title": "Python Dev"})
+    assert result["required_skills"] == ["python", "sql"]
+    assert captured["url"].endswith("/models/gemini-2.5-flash:generateContent")
+    assert captured["headers"]["x-goog-api-key"] == "test-gemini-key"

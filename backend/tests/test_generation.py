@@ -34,3 +34,38 @@ def test_generated_documents_use_verified_profile_and_versions(tmp_path, monkeyp
         assert unsupported_claims("I worked at Fabricated Corp in 2020.", context) == ["Fabricated Corp", "2020"]
         regenerated = generate_documents(db, user, job, [], ["pdf"])
         assert all(row.version == 2 for row in regenerated)
+
+
+def test_gemini_generation_provider(monkeypatch):
+    from app.core.config import settings
+    from app.services.generation.providers import GeminiGenerationProvider, get_generation_provider
+
+    class FakeResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict:
+            return {
+                "candidates": [
+                    {
+                        "content": {
+                            "parts": [
+                                {
+                                    "text": '{"cv":"Ada Lovelace CV","cover_letter":"Dear Hiring Team","answers":{"Why?":"Verified Python"}}'
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+
+    monkeypatch.setattr("app.services.ai.providers.httpx.post", lambda *a, **kw: FakeResponse())
+    monkeypatch.setattr(settings, "ai_provider", "gemini")
+    monkeypatch.setattr(settings, "ai_api_key", "test-gemini-key")
+    monkeypatch.setattr(settings, "ai_model", "gemini-2.5-flash")
+
+    provider = get_generation_provider()
+    assert isinstance(provider, GeminiGenerationProvider)
+    out = provider.generate({"job": {"title": "Dev"}, "profile": {}, "questions": ["Why?"]})
+    assert out["cv"] == "Ada Lovelace CV"
+    assert out["answers"] == {"Why?": "Verified Python"}
