@@ -13,7 +13,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 configured_url = config.get_main_option("sqlalchemy.url")
-if not configured_url or configured_url.startswith("driver://"):
+if not configured_url or configured_url.startswith(("driver://", "mysql+pymysql://unused:")):
     database_url = settings.database_url.render_as_string(hide_password=False)
     config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
 else:
