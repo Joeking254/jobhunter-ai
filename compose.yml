@@ -53,7 +53,7 @@ services:
 
   worker:
     image: jobhunter-ai-backend:latest
-    command: ["celery", "-A", "app.worker.celery_app:celery_app", "worker", "--loglevel=INFO", "--concurrency=4", "-Q", "celery,discovery,analysis,applications,notifications,maintenance"]
+    command: ["celery", "-A", "app.worker.celery_app:celery_app", "worker", "--loglevel=INFO", "--concurrency=2", "-Q", "celery,discovery,analysis,applications,notifications,maintenance"]
     stop_grace_period: 30s
     environment: &backend-env
       APP_ENV: ${APP_ENV:-development}
