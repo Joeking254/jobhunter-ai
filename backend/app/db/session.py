@@ -19,8 +19,13 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False
 
 def get_db() -> Generator[Session, None, None]:
     with SessionLocal() as session:
-        with session.begin():
+        try:
             yield session
+            if session.in_transaction():
+                session.commit()
+        except Exception:
+            session.rollback()
+            raise
 
 
 def build_session_factory(database_url: str):

@@ -29,6 +29,10 @@ def make_pdf() -> bytes:
 def test_profile_editing_and_verified_facts(client):
     csrf = register(client, "profile@example.com")
     headers = {"X-CSRF-Token": csrf}
+    minimal = client.put("/api/profile", headers=headers, json={"phone": "0751858803", "city": "nyeri", "country": "Kenya", "linkedin_url": None, "professional_summary": None})
+    assert minimal.status_code == 200
+    assert minimal.json()["personal"]["phone"] == "0751858803"
+    assert minimal.json()["personal"]["city"] == "nyeri"
     response = client.put("/api/profile", headers=headers, json={"phone": "+254700000000", "country": "Kenya", "city": "Nairobi", "professional_summary": "Confirmed summary", "portfolio_links": ["https://example.com/portfolio"], "linkedin_url": "https://linkedin.com/in/ada"})
     assert response.status_code == 200
     assert response.json()["personal"]["city"] == "Nairobi"

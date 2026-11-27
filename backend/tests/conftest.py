@@ -20,7 +20,7 @@ import_models()
 
 
 @pytest.fixture()
-def client(tmp_path):
+def client(tmp_path, monkeypatch):
     settings.document_storage_dir = str(tmp_path / "private-documents")
     engine = create_engine(f"sqlite:///{tmp_path / 'test.db'}", connect_args={"check_same_thread": False})
 
@@ -30,12 +30,9 @@ def client(tmp_path):
 
     Base.metadata.create_all(engine)
     factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    monkeypatch.setattr("app.db.session.SessionLocal", factory)
+    app.dependency_overrides[get_db] = get_db
 
-    def override_get_db():
-        with factory() as session:
-            yield session
-
-    app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
